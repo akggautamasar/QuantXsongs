@@ -2,7 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 
 // Bot token
-const token = '7829395449:AAF15rd4Jb4kcwx7Cnu2p0lpS79BpwqgB8M';
+ const token = process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 
 const API_BASE_URL = 'https://airsongsapi.vercel.app';
