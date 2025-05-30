@@ -1,5 +1,3 @@
-# api/bot.py
-
 import logging
 import os
 import json
@@ -17,16 +15,25 @@ logger = logging.getLogger(__name__)
 # --- Configuration ---
 # IMPORTANT: Get your bot token from Vercel Environment Variables (TELEGRAM_BOT_TOKEN)
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+
+# Exit early if the token is not set, which will cause issues
 if not TELEGRAM_BOT_TOKEN:
-    logger.error("TELEGRAM_BOT_TOKEN environment variable not set.")
-    # In a real deployment, you might want to exit or raise an error here.
-    # For local testing, you might temporarily hardcode it, but remove for production.
+    logger.error("TELEGRAM_BOT_TOKEN environment variable not set. Bot cannot start.")
+    # In a production serverless environment, you might just return an error
+    # or ensure this handler is not invoked without the token.
+    # For Vercel, this error will be visible in the deployment logs.
+    # You might want to raise an exception if you want the deployment to fail explicitly.
+    # raise ValueError("TELEGRAM_BOT_TOKEN is not set in environment variables.")
 
 BASE_API_URL = "https://airsongsapi.vercel.app"
 
 # Initialize the Application outside the webhook function to reuse it across invocations
 # This is a common pattern for serverless functions with python-telegram-bot
-application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+# Only build the application if the token is available
+if TELEGRAM_BOT_TOKEN:
+    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+else:
+    application = None # Set to None if token is missing, so handlers are not added to invalid app
 
 # --- Helper Functions ---
 
@@ -181,22 +188,32 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
 
 # --- Setup for Webhook ---
 
-# Add handlers to the application
-application.add_handler(CommandHandler("start", start_command))
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, search_songs))
-application.add_handler(CallbackQueryHandler(button_callback_handler))
+# Add handlers to the application if it was successfully initialized
+if application:
+    application.add_handler(CommandHandler("start", start_command))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, search_songs))
+    application.add_handler(CallbackQueryHandler(button_callback_handler))
 
 # The Vercel entry point for the serverless function
+# This function will be called by Vercel when a request comes in
 async def handler(request):
+    # If the application object wasn't created due to missing token, return an error
+    if not application:
+        logger.error("Bot application not initialized due to missing TELEGRAM_BOT_TOKEN.")
+        return {"statusCode": 500, "body": "Bot not configured. TELEGRAM_BOT_TOKEN is missing."}
+
     if request.method == "POST":
         # Telegram sends updates as JSON in the request body
-        body = await request.get_json()
-        update = Update.de_json(body, application.bot)
-        await application.process_update(update)
-        return {"statusCode": 200, "body": "OK"}
+        try:
+            body = await request.get_json()
+            update = Update.de_json(body, application.bot)
+            await application.process_update(update)
+            return {"statusCode": 200, "body": "OK"}
+        except Exception as e:
+            logger.error(f"Error processing update: {e}")
+            return {"statusCode": 500, "body": f"Error processing update: {e}"}
     elif request.method == "GET":
         # For initial webhook setup or health check
-        return {"statusCode": 200, "body": "Bot is running!"}
+        return {"statusCode": 200, "body": "Bot is running and ready for webhooks!"}
     else:
         return {"statusCode": 405, "body": "Method Not Allowed"}
-
