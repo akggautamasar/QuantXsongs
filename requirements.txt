@@ -1,2 +1,2 @@
-python-telegram-bot==21.0.1 # Or the latest stable version
+python-telegram-bot==20.8
 requests
