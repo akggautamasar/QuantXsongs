@@ -1,0 +1,19 @@
+{
+  "name": "airsongs-telegram-bot",
+  "version": "1.0.0",
+  "description": "AirSongs Telegram Bot for music search and streaming",
+  "main": "api/webhook.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "nodemon bot.js",
+    "setup-webhook": "node setup-webhook.js",
+    "build": "echo 'No build step required'"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.64.0",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}
