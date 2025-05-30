@@ -2,14 +2,17 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/bot.py",
-      "use": "@vercel/python"
+      "src": "api/webhook.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/bot",
-      "dest": "api/bot.py"
+      "src": "/api/webhook",
+      "dest": "/api/webhook.js"
     }
-  ]
+  ],
+  "env": {
+    "TELEGRAM_BOT_TOKEN": "@telegram_bot_token"
+  }
 }
